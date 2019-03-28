@@ -1,7 +1,9 @@
 import comp34120.ex2.PlayerImpl;
 import comp34120.ex2.PlayerType;
+import comp34120.ex2.Record;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
+import java.util.ArrayList;
 
 /**
  * A pseudo leader. The members m_platformStub and m_type are declared
@@ -22,12 +24,22 @@ final class Leader
 	 * @throws RemoteException
 	 * @throws NotBoundException
 	 */
+ 		private ArrayList<Float> leaderPrices;
+ 		private ArrayList<Float> followerPrices;
+ 		private ArrayList<Float> followerCosts;
+ 		private float a;
+ 		private float b;
 	Leader()
 		throws RemoteException, NotBoundException
 	{
 		/* The first parameter *MUST* be PlayerType.LEADER, you can change
 		 * the second parameter, the name of the leader, such as "My Leader" */
-		super(PlayerType.LEADER, "Group29Leader");
+		 super(PlayerType.LEADER, "Group29Leader");
+		 leaderPrices = new ArrayList<Float>();
+		 followerPrices = new ArrayList<Float>();
+		 followerCosts = new ArrayList<Float>();
+		 a = (float) 0;
+		 b = (float) 0;
 	}
 
 	/**
@@ -66,12 +78,39 @@ final class Leader
 	 * @throws RemoteException If implemented, the RemoteException *MUST* be
 	 * thrown by this method
 	 */
-	@Override
-	public void startSimulation(int p_steps)
-		throws RemoteException
-	{
-		super.startSimulation(p_steps);
-		//TO DO: delete the line above and put your own initialization code here
+	 @Override
+ 	public void startSimulation(int p_steps) throws RemoteException {
+ 		// Reset
+ 		leaderPrices = new ArrayList<Float>();
+ 		followerPrices = new ArrayList<Float>();
+ 		followerCosts = new ArrayList<Float>();
+ 		m_platformStub.log(m_type, "startSimulation()");
+ 		Record currentRecord;
+ 		for (int i = 1; i <= 100; i++) {
+ 			currentRecord = m_platformStub.query(m_type, i);
+ 			leaderPrices.add(currentRecord.m_leaderPrice);
+ 			followerPrices.add(currentRecord.m_followerPrice);
+ 			followerCosts.add(currentRecord.m_cost);
+ 		}
+ 		//leaderPrices.add((float) 3.0); leaderPrices.add((float) 4.0); leaderPrices.add((float) 5.0); leaderPrices.add((float) 6.0); leaderPrices.add((float) 7.0);
+ 		//followerPrices.add((float) 2.0); followerPrices.add((float) 3.0); followerPrices.add((float) 3.0); followerPrices.add((float) 4.0); followerPrices.add((float) 6.0);
+ 		float aUpperFirst = 0;
+ 		float aUpperSecond = 0;
+ 		float aUpperThird = 0;
+ 		float aUpperFourth = 0;
+ 		float aLowerFirst = 0;
+ 		float aLowerSecond = 0;
+ 		for (int i = 0; i < leaderPrices.size(); i++) {
+ 			aUpperFirst = aUpperFirst + leaderPrices.get(i)*leaderPrices.get(i);
+ 			aUpperSecond = aUpperSecond + followerPrices.get(i);
+ 			aUpperThird = aUpperThird + leaderPrices.get(i);
+ 			aUpperFourth = aUpperFourth + leaderPrices.get(i)*followerPrices.get(i);
+ 			aLowerFirst = aLowerFirst + leaderPrices.get(i)*leaderPrices.get(i);
+ 			aLowerSecond = aLowerSecond + leaderPrices.get(i);
+ 		}
+ 		a = (aUpperFirst*aUpperSecond-aUpperThird*aUpperFourth)/(((float) leaderPrices.size())*aLowerFirst - aLowerSecond*aLowerSecond);
+ 		b = (((float) leaderPrices.size())*aUpperFourth-aUpperThird*aUpperSecond)/(((float) leaderPrices.size())*aUpperFirst-aLowerSecond*aLowerSecond);
+ 		m_platformStub.log(m_type, "a: " + a + ",b: " + b);
 	}
 
 	/**
@@ -109,6 +148,26 @@ final class Leader
 		 * m_platformStub.publishPrice(m_type, l_newPrice);
 		 */
 		 m_platformStub.publishPrice(m_type, 1);
+	}
+
+	private float genPrice() throws RemoteException {
+		//return (float) (p_mean + m_randomizer.nextGaussian() * p_diversity);
+		float bestStrat = ((float) 1);
+		float bestSales = ((float) 2) - bestStrat + ((float) 0.3)*(a+b*bestStrat);
+		float bestProfit = (bestStrat-1)*bestSales;
+		float currentSales;
+		float currentProfit;
+		int loops = 0;
+		for (float currentStrat = ((float) 1.00); currentStrat < ((float) 3); currentStrat = currentStrat + ((float) 0.01)) {
+			currentSales = ((float) 2) - currentStrat + ((float) 0.3)*(a+b*currentStrat);
+			currentProfit = (currentStrat-1)*currentSales;
+			if (currentProfit > bestProfit) {
+				bestStrat = currentStrat;
+				bestProfit = currentProfit;
+			}
+			m_platformStub.log(m_type, "strat: " + currentStrat + ", profit: " + currentProfit);
+	  }
+		return bestStrat;
 	}
 
 	public static void main(final String[] p_args)
