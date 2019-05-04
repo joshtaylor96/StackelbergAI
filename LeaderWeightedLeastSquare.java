@@ -1,6 +1,8 @@
 import comp34120.ex2.PlayerImpl;
 import comp34120.ex2.PlayerType;
 import comp34120.ex2.Record;
+import sun.awt.HKSCS;
+
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
@@ -156,6 +158,37 @@ final class LeaderWeightedLeastSquare extends PlayerImpl {
 		// return (((float)3.0 + (float)0.3 *a- (float)0.3*b)/((float)2.0
 		// -(float)0.6*b));
 		return ((float) 3 * b - (float) 3 * a - 30) / ((float) 6 * b - 20);
+	}
+
+	public float calculateMapeError(ArrayList<Record> historicalData, float a, float b) {
+		float mape = 0;
+		for (int i = 0; i < history.size(); i++) {
+			mape += (historicalData.get(i).m_followerPrice - calculateReaction(a, b, historicalData.get(i).m_leaderPrice)) / historicalData.get(i).m_followerPrice;
+		}
+
+		return mape / history.size();
+	}
+
+	public float calculateRSquaredError(ArrayList<Record> historicalData, float a, float b) {
+		float yBar = 0;
+		float sst = 0;
+		float sse = 0;
+
+		for (int i = 0; i < history.size(); i++) {
+			yBar += historicalData.get(i).m_followerPrice;
+		}
+		yBar = yBar / historicalData.size();
+
+		for (int i = 0; i < history.size(); i++) {
+			sst += Math.pow(historicalData.get(i).m_followerPrice - yBar, 2);
+			sse += Math.pow(historicalData.get(i).m_followerPrice - calculateReaction(a, b, historicalData.get(i).m_leaderPrice), 2);
+		}
+
+		return 1 - sse/sst;
+	}
+
+	public float calculateReaction(float a, float b, float strategy) {
+		return a + b * strategy;
 	}
 
 	public static void main(final String[] p_args) throws RemoteException, NotBoundException {
